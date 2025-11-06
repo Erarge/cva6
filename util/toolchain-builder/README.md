@@ -53,6 +53,17 @@ upstream toolchain (default: GCC 13.1.0) for bare-metal 32-bit and 64-bit applic
     # 3. Build and install the toolchain (requires write+create permissions for $INSTALL_DIR.)
     bash build-toolchain.sh $INSTALL_DIR
 
+If you want to double-check that your shell user can create the installation directory,
+run a quick writable-parent check before starting the build:
+
+    # Optional: confirm you can create files underneath the chosen prefix
+    mkdir -p "$INSTALL_DIR"
+    test -w "$INSTALL_DIR" && rm -rf "$INSTALL_DIR"
+
+The `mkdir -p` command succeeds only when the parent path is writable; removing the
+temporary directory afterwards keeps the build script free to recreate the tree as
+needed.
+
 ## File and directory structure
 
 The base infrastructure for building compilation toolchains consists of two scripts

@@ -31,7 +31,8 @@ module ex_stage
     parameter type lsu_ctrl_t = logic,
     parameter type x_result_t = logic,
     parameter type acc_mmu_req_t = logic,
-    parameter type acc_mmu_resp_t = logic
+    parameter type acc_mmu_resp_t = logic,
+    parameter type cbo_t = logic
 ) (
     // Subsystem Clock - SUBSYSTEM
     input logic clk_i,
@@ -139,6 +140,8 @@ module ex_stage
     output logic fpu_valid_o,
     // FPU exception - ISSUE_STAGE
     output exception_t fpu_exception_o,
+    // FPU early valid - ISSUE_STAGE
+    output logic fpu_early_valid_o,
     // ALU2 instruction is valid - ISSUE_STAGE
     input logic [CVA6Cfg.NrIssuePorts-1:0] alu2_valid_i,
     // CVXIF instruction is valid - ISSUE_STAGE
@@ -184,6 +187,8 @@ module ex_stage
     input logic flush_tlb_gvma_i,
     // Privilege mode - CSR_REGFILE
     input riscv::priv_lvl_t priv_lvl_i,
+    // Data endianness - CSR REGFILE
+    input logic mbe_i,
     // Virtualization mode - CSR_REGFILE
     input logic v_i,
     // Privilege level at which load and stores should happen - CSR_REGFILE
@@ -465,14 +470,16 @@ module ex_stage
           .fpu_trans_id_o(fpu_trans_id),
           .result_o(fpu_result),
           .fpu_valid_o(fpu_valid),
-          .fpu_exception_o
+          .fpu_exception_o,
+          .fpu_early_valid_o
       );
     end else begin : no_fpu_gen
-      assign fpu_ready_o     = '0;
-      assign fpu_trans_id    = '0;
-      assign fpu_result      = '0;
-      assign fpu_valid       = '0;
-      assign fpu_exception_o = '0;
+      assign fpu_ready_o       = '0;
+      assign fpu_trans_id      = '0;
+      assign fpu_result        = '0;
+      assign fpu_valid         = '0;
+      assign fpu_exception_o   = '0;
+      assign fpu_early_valid_o = '0;
     end
   endgenerate
 
@@ -528,6 +535,7 @@ module ex_stage
       .icache_dreq_t(icache_dreq_t),
       .icache_drsp_t(icache_drsp_t),
       .lsu_ctrl_t(lsu_ctrl_t),
+      .cbo_t(cbo_t),
       .acc_mmu_req_t(acc_mmu_req_t),
       .acc_mmu_resp_t(acc_mmu_resp_t)
   ) lsu_i (
@@ -559,6 +567,7 @@ module ex_stage
       .icache_areq_i,
       .icache_areq_o,
       .priv_lvl_i,
+      .mbe_i,
       .v_i,
       .ld_st_priv_lvl_i,
       .ld_st_v_i,
@@ -636,6 +645,8 @@ module ex_stage
     assign x_exception_o    = '0;
     assign x_result_o       = '0;
     assign x_valid_o        = '0;
+    assign x_we_o           = '0;
+    assign x_rd_o           = '0;
   end
 
   if (CVA6Cfg.RVS) begin
